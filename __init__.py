@@ -45,7 +45,7 @@ class VIEW3D_PT_XRotationAdjustPanel(bpy.types.Panel):
     bl_idname = "VIEW3D_PT_x_rotation_adjust_panel"
     bl_space_type = 'VIEW_3D'
     bl_region_type = 'UI'
-    bl_category = "Rotate Tools"
+    bl_category = "Unity Tools"
 
     def draw(self, context):
         layout = self.layout
