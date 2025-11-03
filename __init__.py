@@ -30,7 +30,7 @@ class OBJECT_OT_XRotationAdjust(bpy.types.Operator):
                 continue
 
             # 1. Xを-90°回転
-            obj.rotation_euler[0] -= math.radians(90)
+            obj.rotation_euler[0] = math.radians(-90)
 
             # 2. Transformの回転を適用
             # この処理だと for の動作が狂います
@@ -39,13 +39,14 @@ class OBJECT_OT_XRotationAdjust(bpy.types.Operator):
 
             # オブジェクトの行列を取得（4x4）
             mat = obj.matrix_basis.copy()
+            mat.translation = (0, 0, 0)
             # メッシュを変換（rotation + scale + translation 全部含む）
             obj.data.transform(mat)
             # オブジェクトの変換をリセット
             obj.matrix_basis.identity()
 
             # 3. Xを+90°回転
-            obj.rotation_euler[0] += math.radians(90)
+            obj.rotation_euler[0] = math.radians(90)
 
         return {'FINISHED'}
 
@@ -60,6 +61,12 @@ class VIEW3D_PT_XRotationAdjustPanel(bpy.types.Panel):
     def draw(self, context):
         layout = self.layout
         layout.label(text="Unity用にX90度の回転を行います")
+        layout.label(text="・子が存在する場合は")
+        layout.label(text="  Outline 親のオブジェクトに")
+        layout.label(text="  合わせて右クリックメニューから")
+        layout.label(text="  Select Hierarcy で選択してボタンを実行")
+        layout.label(text="  全ての子を選択して")
+        layout.label(text="  RX-90度して 0度にしてください")
         need_adjust = False
 
         if bpy.context.mode != 'OBJECT':
