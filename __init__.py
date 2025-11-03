@@ -1,10 +1,10 @@
 bl_info = {
     "name": "_ Unity. X Rotation Adjust",
     "author": "Yame",
-    "version": (1, 0),
+    "version": (1, 1),
     "blender": (4, 0, 0),
     "location": "View3D > Sidebar > Rotate Tools",
-    "description": "Adjust X rotation: -90, apply transform, +90",
+    "description": "Adjust X rotation: -90, apply transform, +90 to all selected objects",
     "category": "3D View",
 }
 
@@ -18,7 +18,10 @@ class OBJECT_OT_XRotationAdjust(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
-        for obj in context.selected_objects:
+        selected = context.selected_objects
+
+        for obj in selected:
+            self.report({'INFO'}, f"{obj}")
             # 現在のX回転（ラジアン）
             x_rot = obj.rotation_euler[0]
             
@@ -30,14 +33,21 @@ class OBJECT_OT_XRotationAdjust(bpy.types.Operator):
             obj.rotation_euler[0] -= math.radians(90)
 
             # 2. Transformの回転を適用
-            bpy.context.view_layer.objects.active = obj
-            bpy.ops.object.transform_apply(rotation=True)
+            # この処理だと for の動作が狂います
+            # bpy.context.view_layer.objects.active = obj
+            # bpy.ops.object.transform_apply(rotation=True)
+
+            # オブジェクトの行列を取得（4x4）
+            mat = obj.matrix_basis.copy()
+            # メッシュを変換（rotation + scale + translation 全部含む）
+            obj.data.transform(mat)
+            # オブジェクトの変換をリセット
+            obj.matrix_basis.identity()
 
             # 3. Xを+90°回転
             obj.rotation_euler[0] += math.radians(90)
 
         return {'FINISHED'}
-
 
 # --- パネル ---
 class VIEW3D_PT_XRotationAdjustPanel(bpy.types.Panel):
@@ -49,29 +59,30 @@ class VIEW3D_PT_XRotationAdjustPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        show_button = False
-        has_object = False
-
         layout.label(text="Unity用にX90度の回転を行います")
+        need_adjust = False
 
-        # 選択オブジェクトのX回転をチェック
+        if bpy.context.mode != 'OBJECT':
+            layout.label(text="オブジェクトモードにする必要が有ります", icon='ERROR')
+            return
+
+        selected = context.selected_objects
+        if not selected:
+            layout.label(text="オブジェクトが選択されてません", icon='ERROR')
+            return
+
         for obj in context.selected_objects:
-            has_object = True
             # Xが90°(π/2ラジアン)でないオブジェクトが1つでもあれば表示
             if not math.isclose(obj.rotation_euler[0] % (2*math.pi), math.pi/2, abs_tol=1e-5):
-                show_button = True
+                need_adjust = True
                 break
 
-        if show_button:
-            layout.operator("object.x_rotation_adjust", text="Adjust X Rotation")
+        if need_adjust:
+            layout.operator("object.x_rotation_adjust", text="Adjust X Rotation", icon="CON_ROTLIKE")
         else:
-            if has_object:
-                layout.label(text="既に回転済みです", icon='INFO_LARGE')
-            else:
-                layout.label(text="オブジェクトが選択されてません", icon='WARNING_LARGE')
+            layout.label(text="既に回転済みです", icon='INFO')
 
-
-# --- register/unregister ---
+# --- 登録 ---
 classes = [OBJECT_OT_XRotationAdjust, VIEW3D_PT_XRotationAdjustPanel]
 
 def register():
@@ -81,7 +92,6 @@ def register():
 def unregister():
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
-
 
 if __name__ == "__main__":
     register()
