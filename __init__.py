@@ -37,13 +37,14 @@ class OBJECT_OT_XRotationAdjust(bpy.types.Operator):
             # bpy.context.view_layer.objects.active = obj
             # bpy.ops.object.transform_apply(rotation=True)
 
-            # オブジェクトの行列を取得（4x4）
-            mat = obj.matrix_basis.copy()
-            mat.translation = (0, 0, 0)
-            # メッシュを変換（rotation + scale + translation 全部含む）
-            obj.data.transform(mat)
-            # オブジェクトの変換をリセット
-            obj.matrix_basis.identity()
+            # 位置・スケールを無視して「回転だけの行列」を作る
+            rot_mat = obj.rotation_euler.to_matrix().to_4x4()
+
+            # メッシュデータに回転を適用
+            obj.data.transform(rot_mat)
+
+            # オブジェクトのTransform回転をリセット
+            obj.rotation_euler = (0, 0, 0)
 
             # 3. Xを+90°回転
             obj.rotation_euler[0] = math.radians(90)
